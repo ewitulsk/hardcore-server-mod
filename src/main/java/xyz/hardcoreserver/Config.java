@@ -8,7 +8,7 @@ public final class Config {
     public static final ModConfigSpec.BooleanValue FORCE_HARDCORE;
     public static final ModConfigSpec.BooleanValue DISABLE_NATURAL_REGEN;
     public static final ModConfigSpec.DoubleValue FOOD_HEAL_PER_HUNGER_POINT;
-    public static final ModConfigSpec.IntValue REVIVE_COST;
+    public static final ModConfigSpec.IntValue BASE_REVIVE_COST;
     public static final ModConfigSpec.BooleanValue GENERATE_VILLAGE_SHRINES;
 
     static {
@@ -33,9 +33,10 @@ public final class Config {
         b.pop();
 
         b.push("respawn");
-        REVIVE_COST = b
-                .comment("Number of diamonds needed to buy back a dead player at a Respawn Shrine.")
-                .defineInRange("reviveCostDiamonds", 10, 0, 2304);
+        BASE_REVIVE_COST = b
+                .comment("Diamonds needed for the FIRST buy-back on the server. Every buy-back after that",
+                        "costs double the previous one: 5, 10, 20, 40, 80, ... (shared by everyone on the server).")
+                .defineInRange("baseReviveCostDiamonds", 5, 1, 1_000_000);
         GENERATE_VILLAGE_SHRINES = b
                 .comment("Automatically build a Respawn Shrine in newly generated villages.")
                 .define("generateVillageShrines", true);

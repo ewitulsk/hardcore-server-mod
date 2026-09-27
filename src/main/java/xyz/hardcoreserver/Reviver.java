@@ -16,6 +16,7 @@ import net.minecraft.world.level.GameType;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /** Brings bought-back players back to life once they are online and past the death screen. */
@@ -49,28 +50,29 @@ public final class Reviver {
         }
         if (level == null) {
             // No destination: bring them back to their own respawn point / world spawn.
-            level = server.overworld();
-            pos = level.getSharedSpawnPos();
-            ServerLevel respawnLevel = server.getLevel(player.getRespawnDimension());
-            if (player.getRespawnPosition() != null && respawnLevel != null) {
-                level = respawnLevel;
-                pos = player.getRespawnPosition().above();
+            GlobalPos spawn = server.getRespawnData().globalPos();
+            ServerPlayer.RespawnConfig personal = player.getRespawnConfig();
+            if (personal != null && server.getLevel(personal.respawnData().globalPos().dimension()) != null) {
+                spawn = GlobalPos.of(personal.respawnData().globalPos().dimension(), personal.respawnData().globalPos().pos().above());
             }
+            level = server.getLevel(spawn.dimension());
+            if (level == null) level = server.overworld();
+            pos = spawn.pos();
         }
 
         player.setGameMode(GameType.SURVIVAL);
-        player.teleportTo(level, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, player.getYRot(), player.getXRot());
+        player.teleportTo(level, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, Set.of(), player.getYRot(), player.getXRot(), true);
         player.removeAllEffects();
         player.clearFire();
         player.resetFallDistance();
         player.setHealth(player.getMaxHealth());
         player.getFoodData().setFoodLevel(20);
         player.getFoodData().setSaturation(5.0F);
-        player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 20 * 10, 4));
+        player.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 20 * 10, 4));
 
         level.playSound(null, player.blockPosition(), SoundEvents.TOTEM_USE, SoundSource.PLAYERS, 1.0F, 1.0F);
         server.getPlayerList().broadcastSystemMessage(
-                Component.literal(player.getGameProfile().getName() + " has been brought back to life!")
+                Component.literal(player.getGameProfile().name() + " has been brought back to life!")
                         .withStyle(ChatFormatting.GOLD), false);
     }
 

@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -15,7 +16,7 @@ import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ChestMenu;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -62,7 +63,7 @@ public class ReviveMenu extends ChestMenu {
             return;
         }
 
-        int cost = Config.REVIVE_COST.get();
+        int cost = data.currentReviveCost();
         int rows = Math.min(6, (targets.size() + 8) / 9);
         SimpleContainer container = new SimpleContainer(rows * 9);
         for (int i = 0; i < targets.size(); i++) {
@@ -70,7 +71,7 @@ public class ReviveMenu extends ChestMenu {
             container.setItem(i, headFor(level, id, data.dead().get(id), cost));
         }
 
-        Component title = Component.literal("Respawn Shrine - " + cost + " diamonds each");
+        Component title = Component.literal("Buy back a player: " + cost + " diamonds");
         player.openMenu(new SimpleMenuProvider((cid, inv, p) -> new ReviveMenu(cid, inv, container, rows, level, anchor, targets), title));
     }
 
@@ -78,20 +79,21 @@ public class ReviveMenu extends ChestMenu {
         ItemStack head = new ItemStack(Items.PLAYER_HEAD);
         ServerPlayer online = level.getServer().getPlayerList().getPlayer(id);
         GameProfile profile = online != null ? online.getGameProfile() : new GameProfile(id, name);
-        head.set(DataComponents.PROFILE, new ResolvableProfile(profile));
+        head.set(DataComponents.PROFILE, online != null ? ResolvableProfile.createResolved(profile) : ResolvableProfile.createUnresolved(id));
         head.set(DataComponents.CUSTOM_NAME, Component.literal(name).withStyle(s -> s.withItalic(false).withColor(ChatFormatting.YELLOW)));
         head.set(DataComponents.LORE, new ItemLore(List.of(
                 Component.literal(online != null ? "Online (spectating)" : "Offline").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GRAY)),
                 Component.literal("Cost: " + cost + " diamonds").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.AQUA)),
+                Component.literal("(the price doubles after every buy-back)").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.DARK_GRAY)),
                 Component.literal("Click to buy back").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GREEN)))));
         return head;
     }
 
     @Override
-    public void clicked(int slotId, int button, ClickType clickType, Player player) {
+    public void clicked(int slotId, int button, ContainerInput clickType, Player player) {
         // Never let items move; just resync the client afterwards.
         if (player instanceof ServerPlayer sp && slotId >= 0 && slotId < targets.size()
-                && (clickType == ClickType.PICKUP || clickType == ClickType.QUICK_MOVE)) {
+                && (clickType == ContainerInput.PICKUP || clickType == ContainerInput.QUICK_MOVE)) {
             purchase(sp, targets.get(slotId));
         }
         sendAllDataToRemote();
@@ -110,7 +112,8 @@ public class ReviveMenu extends ChestMenu {
     }
 
     private void purchase(ServerPlayer buyer, UUID target) {
-        HardcoreData data = HardcoreData.get(buyer.server);
+        MinecraftServer server = level.getServer();
+        HardcoreData data = HardcoreData.get(server);
         String name = data.dead().get(target);
         if (name == null || data.isRevivePending(target)) {
             buyer.sendSystemMessage(Component.literal("That player has already been revived.").withStyle(ChatFormatting.YELLOW));
@@ -118,7 +121,7 @@ public class ReviveMenu extends ChestMenu {
             return;
         }
 
-        int cost = Config.REVIVE_COST.get();
+        int cost = data.currentReviveCost();
         if (!buyer.isCreative()) {
             int have = buyer.getInventory().countItem(Items.DIAMOND);
             if (have < cost) {
@@ -127,17 +130,19 @@ public class ReviveMenu extends ChestMenu {
                 level.playSound(null, anchor, SoundEvents.VILLAGER_NO, SoundSource.BLOCKS, 1.0F, 1.0F);
                 return;
             }
-            buyer.getInventory().clearOrCountMatchingItems(s -> s.is(Items.DIAMOND), cost, buyer.inventoryMenu.getCraftSlots());
+            buyer.getInventory().clearOrCountMatchingItems(s -> s.is(Items.DIAMOND), false, cost, buyer.inventoryMenu.getCraftSlots());
             buyer.inventoryMenu.broadcastChanges();
         }
 
+        data.recordPurchase();
         data.queueRevive(target, Optional.of(GlobalPos.of(level.dimension(), ShrineBuilder.standPos(anchor))));
         buyer.closeContainer();
         level.playSound(null, anchor, SoundEvents.RESPAWN_ANCHOR_SET_SPAWN, SoundSource.BLOCKS, 1.0F, 1.0F);
-        buyer.server.getPlayerList().broadcastSystemMessage(
-                Component.literal(buyer.getGameProfile().getName() + " spent " + cost + " diamonds to buy back " + name + "!")
+        server.getPlayerList().broadcastSystemMessage(
+                Component.literal(buyer.getGameProfile().name() + " spent " + cost + " diamonds to buy back " + name
+                        + "! The next buy-back costs " + data.currentReviveCost() + " diamonds.")
                         .withStyle(ChatFormatting.AQUA), false);
-        if (buyer.server.getPlayerList().getPlayer(target) == null) {
+        if (server.getPlayerList().getPlayer(target) == null) {
             buyer.sendSystemMessage(Component.literal(name + " is offline and will be revived at this shrine when they next join.")
                     .withStyle(ChatFormatting.GRAY));
         }

@@ -1,16 +1,13 @@
 package xyz.hardcoreserver;
 
-import net.minecraft.core.BlockPos;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.GlobalPos;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -19,9 +16,34 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Persistent world state: who is dead, who has been bought back, and where the shrines are. */
+/** Persistent world state: who is dead, who has been bought back, prices, and where the shrines are. */
 public class HardcoreData extends SavedData {
-    private static final String NAME = HardcoreServer.MOD_ID;
+    private record DeadEntry(UUID id, String name) {
+        static final Codec<DeadEntry> CODEC = RecordCodecBuilder.create(i -> i.group(
+                UUIDUtil.CODEC.fieldOf("id").forGetter(DeadEntry::id),
+                Codec.STRING.fieldOf("name").forGetter(DeadEntry::name)
+        ).apply(i, DeadEntry::new));
+    }
+
+    private record ReviveEntry(UUID id, Optional<GlobalPos> dest) {
+        static final Codec<ReviveEntry> CODEC = RecordCodecBuilder.create(i -> i.group(
+                UUIDUtil.CODEC.fieldOf("id").forGetter(ReviveEntry::id),
+                GlobalPos.CODEC.optionalFieldOf("dest").forGetter(ReviveEntry::dest)
+        ).apply(i, ReviveEntry::new));
+    }
+
+    private static final Codec<HardcoreData> CODEC = RecordCodecBuilder.create(i -> i.group(
+            DeadEntry.CODEC.listOf().optionalFieldOf("dead", List.of()).forGetter(d -> d.dead.entrySet().stream()
+                    .map(e -> new DeadEntry(e.getKey(), e.getValue())).toList()),
+            ReviveEntry.CODEC.listOf().optionalFieldOf("pending_revives", List.of()).forGetter(d -> d.pendingRevives.entrySet().stream()
+                    .map(e -> new ReviveEntry(e.getKey(), e.getValue())).toList()),
+            GlobalPos.CODEC.listOf().optionalFieldOf("shrines", List.of()).forGetter(d -> d.shrines),
+            GlobalPos.CODEC.listOf().optionalFieldOf("pending_villages", List.of()).forGetter(d -> d.pendingVillages),
+            Codec.INT.optionalFieldOf("revives_purchased", 0).forGetter(d -> d.revivesPurchased)
+    ).apply(i, HardcoreData::new));
+
+    private static final SavedDataType<HardcoreData> TYPE = new SavedDataType<>(
+            Identifier.fromNamespaceAndPath(HardcoreServer.MOD_ID, "state"), HardcoreData::new, CODEC);
 
     /** Dead players (uuid -> last known name). */
     private final Map<UUID, String> dead = new LinkedHashMap<>();
@@ -31,10 +53,22 @@ public class HardcoreData extends SavedData {
     private final List<GlobalPos> shrines = new ArrayList<>();
     /** Village centers that still need a shrine built once the area is loaded. */
     private final List<GlobalPos> pendingVillages = new ArrayList<>();
+    /** How many buy-backs have been paid for on this world; drives the doubling price. */
+    private int revivesPurchased;
+
+    public HardcoreData() {}
+
+    private HardcoreData(List<DeadEntry> dead, List<ReviveEntry> revives, List<GlobalPos> shrines,
+                         List<GlobalPos> pendingVillages, int revivesPurchased) {
+        dead.forEach(e -> this.dead.put(e.id(), e.name()));
+        revives.forEach(e -> this.pendingRevives.put(e.id(), e.dest()));
+        this.shrines.addAll(shrines);
+        this.pendingVillages.addAll(pendingVillages);
+        this.revivesPurchased = revivesPurchased;
+    }
 
     public static HardcoreData get(MinecraftServer server) {
-        return server.overworld().getDataStorage().computeIfAbsent(
-                new SavedData.Factory<>(HardcoreData::new, HardcoreData::load), NAME);
+        return server.getDataStorage().computeIfAbsent(TYPE);
     }
 
     // ---- dead players ----
@@ -52,11 +86,6 @@ public class HardcoreData extends SavedData {
         setDirty();
     }
 
-    public void clearDead(UUID id) {
-        if (dead.remove(id) != null) setDirty();
-        if (pendingRevives.remove(id) != null) setDirty();
-    }
-
     // ---- revives ----
 
     public Map<UUID, Optional<GlobalPos>> pendingRevives() {
@@ -69,6 +98,36 @@ public class HardcoreData extends SavedData {
 
     public void queueRevive(UUID id, Optional<GlobalPos> destination) {
         pendingRevives.put(id, destination);
+        setDirty();
+    }
+
+    // ---- pricing ----
+
+    public int revivesPurchased() {
+        return revivesPurchased;
+    }
+
+    /** Diamonds needed for the next buy-back: base, then doubling each time (5, 10, 20, 40, ...). */
+    public int currentReviveCost() {
+        return costForPurchase(revivesPurchased);
+    }
+
+    /** Cost of the purchase with the given zero-based index, capped so it never overflows. */
+    public static int costForPurchase(int index) {
+        long cost = Config.BASE_REVIVE_COST.get();
+        for (int i = 0; i < index && cost < Integer.MAX_VALUE; i++) {
+            cost *= 2;
+        }
+        return (int) Math.min(cost, Integer.MAX_VALUE);
+    }
+
+    public void recordPurchase() {
+        revivesPurchased++;
+        setDirty();
+    }
+
+    public void setRevivesPurchased(int count) {
+        revivesPurchased = Math.max(0, count);
         setDirty();
     }
 
@@ -100,74 +159,5 @@ public class HardcoreData extends SavedData {
             pendingVillages.add(pos);
             setDirty();
         }
-    }
-
-    // ---- serialization ----
-
-    @Override
-    public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
-        ListTag deadList = new ListTag();
-        dead.forEach((id, name) -> {
-            CompoundTag e = new CompoundTag();
-            e.putUUID("id", id);
-            e.putString("name", name);
-            deadList.add(e);
-        });
-        tag.put("dead", deadList);
-
-        ListTag reviveList = new ListTag();
-        pendingRevives.forEach((id, dest) -> {
-            CompoundTag e = new CompoundTag();
-            e.putUUID("id", id);
-            dest.ifPresent(p -> e.put("dest", writePos(p)));
-            reviveList.add(e);
-        });
-        tag.put("pendingRevives", reviveList);
-
-        tag.put("shrines", writePosList(shrines));
-        tag.put("pendingVillages", writePosList(pendingVillages));
-        return tag;
-    }
-
-    private static HardcoreData load(CompoundTag tag, HolderLookup.Provider registries) {
-        HardcoreData data = new HardcoreData();
-        for (Tag t : tag.getList("dead", Tag.TAG_COMPOUND)) {
-            CompoundTag e = (CompoundTag) t;
-            data.dead.put(e.getUUID("id"), e.getString("name"));
-        }
-        for (Tag t : tag.getList("pendingRevives", Tag.TAG_COMPOUND)) {
-            CompoundTag e = (CompoundTag) t;
-            Optional<GlobalPos> dest = e.contains("dest", Tag.TAG_COMPOUND)
-                    ? Optional.of(readPos(e.getCompound("dest"))) : Optional.empty();
-            data.pendingRevives.put(e.getUUID("id"), dest);
-        }
-        data.shrines.addAll(readPosList(tag.getList("shrines", Tag.TAG_COMPOUND)));
-        data.pendingVillages.addAll(readPosList(tag.getList("pendingVillages", Tag.TAG_COMPOUND)));
-        return data;
-    }
-
-    private static CompoundTag writePos(GlobalPos pos) {
-        CompoundTag t = new CompoundTag();
-        t.putString("dim", pos.dimension().location().toString());
-        t.putLong("pos", pos.pos().asLong());
-        return t;
-    }
-
-    private static GlobalPos readPos(CompoundTag t) {
-        ResourceKey<net.minecraft.world.level.Level> dim =
-                ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(t.getString("dim")));
-        return GlobalPos.of(dim, BlockPos.of(t.getLong("pos")));
-    }
-
-    private static ListTag writePosList(List<GlobalPos> list) {
-        ListTag out = new ListTag();
-        list.forEach(p -> out.add(writePos(p)));
-        return out;
-    }
-
-    private static List<GlobalPos> readPosList(ListTag list) {
-        List<GlobalPos> out = new ArrayList<>();
-        for (Tag t : list) out.add(readPos((CompoundTag) t));
-        return out;
     }
 }

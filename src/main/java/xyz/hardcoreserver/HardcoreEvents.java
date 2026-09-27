@@ -6,7 +6,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.CakeBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -32,9 +32,9 @@ public final class HardcoreEvents {
     }
 
     private static void enforceGameRules(MinecraftServer server) {
-        GameRules.BooleanValue regen = server.getGameRules().getRule(GameRules.RULE_NATURAL_REGENERATION);
-        if (Config.DISABLE_NATURAL_REGEN.get() && regen.get()) {
-            regen.set(false, server);
+        GameRules rules = server.getGameRules();
+        if (Config.DISABLE_NATURAL_REGEN.get() && rules.get(GameRules.NATURAL_HEALTH_REGENERATION)) {
+            rules.set(GameRules.NATURAL_HEALTH_REGENERATION, false, server);
             HardcoreServer.LOGGER.info("Hardcore Server: natural regeneration disabled");
         }
     }
@@ -44,15 +44,15 @@ public final class HardcoreEvents {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onDeath(LivingDeathEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
-            HardcoreData.get(player.server).markDead(player.getUUID(), player.getGameProfile().getName());
+            HardcoreData.get(player.level().getServer()).markDead(player.getUUID(), player.getGameProfile().name());
         }
     }
 
     @SubscribeEvent
     public static void onRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (event.isEndConquered() || !(event.getEntity() instanceof ServerPlayer player)) return;
-        HardcoreData data = HardcoreData.get(player.server);
-        data.markDead(player.getUUID(), player.getGameProfile().getName());
+        HardcoreData data = HardcoreData.get(player.level().getServer());
+        data.markDead(player.getUUID(), player.getGameProfile().name());
         player.setGameMode(GameType.SPECTATOR);
         player.sendSystemMessage(Component.literal("You died! You are now a spectator until another player buys you back with diamonds at a village Respawn Shrine.")
                 .withStyle(ChatFormatting.RED));
@@ -63,10 +63,10 @@ public final class HardcoreEvents {
     @SubscribeEvent
     public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
-        HardcoreData data = HardcoreData.get(player.server);
+        HardcoreData data = HardcoreData.get(player.level().getServer());
         if (data.isDead(player.getUUID())) {
             // Keep the stored name fresh in case they renamed.
-            data.markDead(player.getUUID(), player.getGameProfile().getName());
+            data.markDead(player.getUUID(), player.getGameProfile().name());
             if (!player.isDeadOrDying() && player.gameMode.getGameModeForPlayer() != GameType.SPECTATOR
                     && !data.isRevivePending(player.getUUID())) {
                 player.setGameMode(GameType.SPECTATOR);

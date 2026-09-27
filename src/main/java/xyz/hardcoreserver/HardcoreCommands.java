@@ -25,6 +25,8 @@ import java.util.UUID;
 /**
  * /hardcore dead                 - list dead players
  * /hardcore shrines              - list the nearest Respawn Shrines
+ * /hardcore price                - show the current buy-back price
+ * /hardcore price reset          - (op) reset the doubling price back to the base cost
  * /hardcore revive &lt;player&gt;      - (op) revive a dead player for free
  * /hardcore shrine create        - (op) build a shrine where you stand
  * /hardcore shrine remove        - (op) unregister the nearest shrine within 8 blocks
@@ -36,12 +38,15 @@ public final class HardcoreCommands {
         d.register(Commands.literal("hardcore")
                 .then(Commands.literal("dead").executes(HardcoreCommands::listDead))
                 .then(Commands.literal("shrines").executes(HardcoreCommands::listShrines))
-                .then(Commands.literal("revive").requires(s -> s.hasPermission(2))
+                .then(Commands.literal("price").executes(HardcoreCommands::showPrice)
+                        .then(Commands.literal("reset").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                                .executes(HardcoreCommands::resetPrice)))
+                .then(Commands.literal("revive").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .then(Commands.argument("player", StringArgumentType.word())
                                 .suggests((ctx, b) -> SharedSuggestionProvider.suggest(
                                         HardcoreData.get(ctx.getSource().getServer()).dead().values(), b))
                                 .executes(HardcoreCommands::revive)))
-                .then(Commands.literal("shrine").requires(s -> s.hasPermission(2))
+                .then(Commands.literal("shrine").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .then(Commands.literal("create").executes(HardcoreCommands::createShrine))
                         .then(Commands.literal("remove").executes(HardcoreCommands::removeShrine))));
     }
@@ -59,6 +64,23 @@ public final class HardcoreCommands {
         return names.size();
     }
 
+    private static int showPrice(CommandContext<CommandSourceStack> ctx) {
+        HardcoreData data = HardcoreData.get(ctx.getSource().getServer());
+        int n = data.revivesPurchased();
+        ctx.getSource().sendSuccess(() -> Component.literal("Next buy-back costs " + data.currentReviveCost() + " diamonds ("
+                + n + " bought back so far; the price doubles after each one, then "
+                + HardcoreData.costForPurchase(n + 1) + ").").withStyle(ChatFormatting.AQUA), false);
+        return data.currentReviveCost();
+    }
+
+    private static int resetPrice(CommandContext<CommandSourceStack> ctx) {
+        HardcoreData data = HardcoreData.get(ctx.getSource().getServer());
+        data.setRevivesPurchased(0);
+        ctx.getSource().sendSuccess(() -> Component.literal("Buy-back price reset to " + data.currentReviveCost() + " diamonds.")
+                .withStyle(ChatFormatting.GREEN), true);
+        return 1;
+    }
+
     private static int listShrines(CommandContext<CommandSourceStack> ctx) {
         CommandSourceStack src = ctx.getSource();
         HardcoreData data = HardcoreData.get(src.getServer());
@@ -71,14 +93,14 @@ public final class HardcoreCommands {
         }
         list.sort(Comparator.comparingDouble((GlobalPos g) -> g.dimension().equals(src.getLevel().dimension()) ? 0 : 1)
                 .thenComparingDouble(g -> g.pos().distToCenterSqr(here)));
-        src.sendSuccess(() -> Component.literal("Respawn Shrines (revive cost: " + Config.REVIVE_COST.get() + " diamonds):")
+        src.sendSuccess(() -> Component.literal("Respawn Shrines (next buy-back costs " + data.currentReviveCost() + " diamonds):")
                 .withStyle(ChatFormatting.LIGHT_PURPLE), false);
         for (GlobalPos g : list.subList(0, Math.min(5, list.size()))) {
             BlockPos p = g.pos();
             boolean sameDim = g.dimension().equals(src.getLevel().dimension());
             String dist = sameDim ? " - " + (int) Math.sqrt(p.distToCenterSqr(here)) + " blocks away" : "";
             src.sendSuccess(() -> Component.literal("  " + p.getX() + ", " + p.getY() + ", " + p.getZ()
-                    + " (" + g.dimension().location().getPath() + ")" + dist).withStyle(ChatFormatting.WHITE), false);
+                    + " (" + g.dimension().identifier().getPath() + ")" + dist).withStyle(ChatFormatting.WHITE), false);
         }
         return list.size();
     }

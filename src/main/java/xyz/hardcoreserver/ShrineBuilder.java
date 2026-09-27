@@ -4,11 +4,16 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.Display;
-import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.RespawnAnchorBlock;
@@ -88,29 +93,30 @@ public final class ShrineBuilder {
 
         spawnLabel(level, anchor);
         HardcoreData.get(level.getServer()).addShrine(GlobalPos.of(level.dimension(), anchor));
-        HardcoreServer.LOGGER.info("Built Respawn Shrine at {} in {}", anchor, level.dimension().location());
+        HardcoreServer.LOGGER.info("Built Respawn Shrine at {} in {}", anchor, level.dimension().identifier());
         return anchor;
     }
 
     private static void spawnLabel(ServerLevel level, BlockPos anchor) {
         removeLabel(level, anchor);
-        Display.TextDisplay display = EntityType.TEXT_DISPLAY.create(level);
+        Display.TextDisplay display = EntityTypes.TEXT_DISPLAY.create(level, EntitySpawnReason.COMMAND);
         if (display == null) return;
         Component text = Component.literal("Respawn Shrine").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD)
                 .append(Component.literal("\nRight-click the anchor to buy back").withStyle(ChatFormatting.WHITE))
                 .append(Component.literal("\nfallen players with diamonds").withStyle(ChatFormatting.AQUA));
         CompoundTag tag = new CompoundTag();
-        tag.putString("text", Component.Serializer.toJson(text, level.registryAccess()));
+        ComponentSerialization.CODEC.encodeStart(level.registryAccess().createSerializationContext(NbtOps.INSTANCE), text)
+                .ifSuccess(t -> tag.put("text", t));
         tag.putString("billboard", "center");
-        display.load(tag);
-        display.moveTo(anchor.getX() + 0.5, anchor.getY() + 2.1, anchor.getZ() + 0.5, 0, 0);
+        display.load(TagValueInput.create(ProblemReporter.DISCARDING, level.registryAccess(), tag));
+        display.snapTo(anchor.getX() + 0.5, anchor.getY() + 2.1, anchor.getZ() + 0.5, 0, 0);
         display.addTag(DISPLAY_TAG);
         level.addFreshEntity(display);
     }
 
     public static void removeLabel(ServerLevel level, BlockPos anchor) {
         AABB box = new AABB(anchor).inflate(1, 3, 1);
-        for (Display.TextDisplay d : level.getEntitiesOfClass(Display.TextDisplay.class, box, e -> e.getTags().contains(DISPLAY_TAG))) {
+        for (Display.TextDisplay d : level.getEntitiesOfClass(Display.TextDisplay.class, box, e -> e.entityTags().contains(DISPLAY_TAG))) {
             d.discard();
         }
     }

@@ -19,7 +19,8 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
-import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
+import net.minecraft.server.permissions.Permissions;
 import net.neoforged.neoforge.event.level.ChunkEvent;
 import net.neoforged.neoforge.event.level.ExplosionEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
@@ -43,7 +44,7 @@ public final class ShrineEvents {
         if (!event.isNewChunk() || !(event.getLevel() instanceof ServerLevel level)) return;
         Map<Structure, StructureStart> starts = event.getChunk().getAllStarts();
         if (starts.isEmpty()) return;
-        Registry<Structure> registry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
+        Registry<Structure> registry = level.registryAccess().lookupOrThrow(Registries.STRUCTURE);
         for (Map.Entry<Structure, StructureStart> e : starts.entrySet()) {
             StructureStart start = e.getValue();
             if (!start.isValid() || start.getPieces().isEmpty()) continue;
@@ -108,12 +109,12 @@ public final class ShrineEvents {
     // ---------------------------------------------------------------- protection
 
     @SubscribeEvent
-    public static void onBreak(BlockEvent.BreakEvent event) {
+    public static void onBreak(BreakBlockEvent event) {
         if (!(event.getLevel() instanceof ServerLevel level)) return;
         HardcoreData data = HardcoreData.get(level.getServer());
         GlobalPos anchor = protectingShrine(data, level.dimension(), event.getPos());
         if (anchor == null) return;
-        if (event.getPlayer().isCreative() && event.getPlayer().hasPermissions(2)) {
+        if (event.getPlayer().isCreative() && event.getPlayer().permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)) {
             if (anchor.pos().equals(event.getPos())) {
                 data.removeShrine(anchor);
                 ShrineBuilder.removeLabel(level, anchor.pos());
