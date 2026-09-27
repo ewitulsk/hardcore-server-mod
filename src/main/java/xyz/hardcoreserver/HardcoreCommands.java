@@ -3,6 +3,8 @@ package xyz.hardcoreserver;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -19,6 +21,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -29,10 +32,18 @@ import java.util.UUID;
  * /hardcore revive &lt;player&gt;      - (op) revive a dead player for free
  * /hardcore shrine create        - (op) build a shrine where you stand
  * /hardcore shrine remove        - (op) unregister the nearest shrine within 8 blocks
+ * /visit &lt;player&gt;                - dead spectators only: teleport to a player
  */
 public final class HardcoreCommands {
 
     public static void register(CommandDispatcher<CommandSourceStack> d) {
+        // Only usable while dead and spectating. The check runs every time, so being bought back
+        // (or an op taking you out of spectator) removes access immediately - nothing to revoke.
+        d.register(Commands.literal("visit")
+                .requires(HardcoreCommands::isDeadSpectator)
+                .then(Commands.argument("player", EntityArgument.player())
+                        .executes(HardcoreCommands::spectate)));
+
         d.register(Commands.literal("hardcore")
                 .then(Commands.literal("dead").executes(HardcoreCommands::listDead))
                 .then(Commands.literal("shrines").executes(HardcoreCommands::listShrines))
@@ -47,6 +58,36 @@ public final class HardcoreCommands {
                 .then(Commands.literal("shrine").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .then(Commands.literal("create").executes(HardcoreCommands::createShrine))
                         .then(Commands.literal("remove").executes(HardcoreCommands::removeShrine))));
+    }
+
+    private static boolean isDeadSpectator(CommandSourceStack src) {
+        return src.getEntity() instanceof ServerPlayer p && isDeadSpectator(p);
+    }
+
+    public static boolean isDeadSpectator(ServerPlayer p) {
+        return p.isSpectator() && HardcoreData.get(p.level().getServer()).isDead(p.getUUID());
+    }
+
+    private static int spectate(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        CommandSourceStack src = ctx.getSource();
+        ServerPlayer self = src.getPlayerOrException();
+        if (!isDeadSpectator(self)) {
+            src.sendFailure(Component.literal("Only dead players in spectator mode can use /visit."));
+            return 0;
+        }
+        ServerPlayer target = EntityArgument.getPlayer(ctx, "player");
+        if (target == self) {
+            src.sendFailure(Component.literal("You can't visit yourself."));
+            return 0;
+        }
+        self.teleportTo(target.level(), target.getX(), target.getY(), target.getZ(), Set.of(), target.getYRot(), target.getXRot(), true);
+        src.sendSuccess(() -> Component.literal("Teleported to " + target.getGameProfile().name() + ".").withStyle(ChatFormatting.GRAY), false);
+        return 1;
+    }
+
+    /** Re-sends the command list so /visit appears or disappears for this player right away. */
+    public static void refresh(ServerPlayer p) {
+        p.level().getServer().getCommands().sendCommands(p);
     }
 
     private static int listDead(CommandContext<CommandSourceStack> ctx) {

@@ -61,6 +61,7 @@ public final class Reviver {
         }
 
         player.setGameMode(GameType.SURVIVAL);
+        HardcoreCommands.refresh(player); // /visit is gone the moment they are alive again
         player.teleportTo(level, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, Set.of(), player.getYRot(), player.getXRot(), true);
         player.removeAllEffects();
         player.clearFire();

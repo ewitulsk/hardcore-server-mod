@@ -9,6 +9,9 @@ plain **vanilla** client (no mods, no Fabric needed). Everything is built from v
 - The world always reports itself as hardcore: players see hardcore hearts and the hardcore death screen,
   and difficulty is locked to **Hard**.
 - When a player dies they respawn in **spectator mode** and stay there until someone buys them back.
+- Dead spectators can teleport to any online player with **`/visit <player>`** (works across dimensions).
+  The command only exists while you are dead and spectating; as soon as you are bought back it disappears.
+  (Vanilla's spectator menu — press `1` or middle-click in spectator — can also teleport to players.)
 
 ### 2. No natural regeneration
 - The `natural_health_regeneration` gamerule is forced off, so a full food bar no longer heals you.
@@ -30,6 +33,7 @@ plain **vanilla** client (no mods, no Fabric needed). Everything is built from v
 
 | Command | Who | Description |
 |---|---|---|
+| `/visit <player>` | dead spectators only | Teleport to a player (gone once you're revived) |
 | `/hardcore dead` | everyone | List dead players |
 | `/hardcore shrines` | everyone | Show the nearest Respawn Shrines and their distance |
 | `/hardcore price` | everyone | Show the current buy-back price |

@@ -41,9 +41,10 @@ public final class HardcoreEvents {
         HardcoreData data = HardcoreData.get(player.level().getServer());
         data.markDead(player.getUUID(), player.getGameProfile().name());
         player.setGameMode(GameType.SPECTATOR);
+        HardcoreCommands.refresh(player);
         player.sendSystemMessage(Component.literal("You died! You are now a spectator until another player buys you back with diamonds at a village Respawn Shrine.")
                 .withStyle(ChatFormatting.RED));
-        player.sendSystemMessage(Component.literal("Use /hardcore shrines to see where the shrines are.")
+        player.sendSystemMessage(Component.literal("Use /visit <player> to teleport to someone, and /hardcore shrines to find the shrines.")
                 .withStyle(ChatFormatting.GRAY));
     }
 
@@ -56,6 +57,7 @@ public final class HardcoreEvents {
                     && !data.isRevivePending(player.getUUID())) {
                 player.setGameMode(GameType.SPECTATOR);
             }
+            HardcoreCommands.refresh(player);
         }
     }
 
@@ -74,6 +76,7 @@ public final class HardcoreEvents {
                         && p.gameMode.getGameModeForPlayer() != GameType.SPECTATOR) {
                     it.remove();
                     data.setDirty();
+                    HardcoreCommands.refresh(p);
                 }
             }
         }
