@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "hardcoreserver",
+  "version": "${version}",
+  "name": "Hardcore Server",
+  "description": "Server-side hardcore rules: death means spectator, no natural regen (food heals), and diamond-powered Respawn Shrines in villages with a doubling price. Vanilla clients can join.",
+  "authors": ["ewitulsk"],
+  "contact": {
+    "sources": "https://github.com/ewitulsk/hardcore-server-mod"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["xyz.hardcoreserver.HardcoreServer"]
+  },
+  "mixins": ["hardcoreserver.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.19.0",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}

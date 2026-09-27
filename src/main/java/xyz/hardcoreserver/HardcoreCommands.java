@@ -13,7 +13,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -33,8 +32,7 @@ import java.util.UUID;
  */
 public final class HardcoreCommands {
 
-    public static void register(RegisterCommandsEvent event) {
-        CommandDispatcher<CommandSourceStack> d = event.getDispatcher();
+    public static void register(CommandDispatcher<CommandSourceStack> d) {
         d.register(Commands.literal("hardcore")
                 .then(Commands.literal("dead").executes(HardcoreCommands::listDead))
                 .then(Commands.literal("shrines").executes(HardcoreCommands::listShrines))

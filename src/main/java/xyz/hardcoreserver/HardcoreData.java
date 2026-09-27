@@ -43,7 +43,7 @@ public class HardcoreData extends SavedData {
     ).apply(i, HardcoreData::new));
 
     private static final SavedDataType<HardcoreData> TYPE = new SavedDataType<>(
-            Identifier.fromNamespaceAndPath(HardcoreServer.MOD_ID, "state"), HardcoreData::new, CODEC);
+            Identifier.fromNamespaceAndPath(HardcoreServer.MOD_ID, "state"), HardcoreData::new, CODEC, null);
 
     /** Dead players (uuid -> last known name). */
     private final Map<UUID, String> dead = new LinkedHashMap<>();

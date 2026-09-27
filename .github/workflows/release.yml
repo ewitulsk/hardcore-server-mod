@@ -44,4 +44,4 @@ jobs:
           files: build/libs/*.jar
           generate_release_notes: true
           body: |
-            Server-side NeoForge mod for Minecraft 26.3. Drop the jar in your server's `mods/` folder. Players do **not** need to install anything (vanilla clients can join).
+            Server-side **Fabric** mod for Minecraft 26.3 (requires Fabric API). Drop the jar in your server's `mods/` folder. Players do **not** need to install anything (vanilla clients can join).

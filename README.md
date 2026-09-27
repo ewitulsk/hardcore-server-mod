@@ -1,7 +1,7 @@
-# Hardcore Server (NeoForge, Minecraft 26.3)
+# Hardcore Server (Fabric, Minecraft 26.3)
 
-A **server-side only** NeoForge mod for Minecraft **26.3**. Install it on the server; players join with a
-plain **vanilla** client (no mods, no NeoForge needed). Everything is built from vanilla blocks, entities and GUIs.
+A **server-side only** Fabric mod for Minecraft **26.3**. Install it on the server; players join with a
+plain **vanilla** client (no mods, no Fabric needed). Everything is built from vanilla blocks, entities and GUIs.
 
 ## Features
 
@@ -11,7 +11,7 @@ plain **vanilla** client (no mods, no NeoForge needed). Everything is built from
 - When a player dies they respawn in **spectator mode** and stay there until someone buys them back.
 
 ### 2. No natural regeneration — food heals
-- The `naturalRegeneration` gamerule is forced off (saturation no longer heals you).
+- The `natural_health_regeneration` gamerule is forced off (saturation no longer heals you).
 - Instead, **eating heals you directly**: 1 half-heart per hunger point of the food (steak = 8 hunger = 4 hearts).
   Cake slices heal too. Golden apples / regeneration potions still work as normal.
 
@@ -42,24 +42,24 @@ Creative-mode operators can also break a shrine's anchor to remove it.
 
 ## Configuration
 
-`config/hardcoreserver-common.toml` (created on first launch):
+`config/hardcoreserver.properties` (created on first launch; restart after editing):
 
 | Key | Default | Description |
 |---|---|---|
-| `hardcore.forceHardcore` | `true` | Force hardcore (hearts, locked Hard difficulty) |
-| `health.disableNaturalRegen` | `true` | Force `naturalRegeneration` off |
-| `health.foodHealPerHungerPoint` | `1.0` | Half-hearts healed per hunger point eaten (`0` disables) |
-| `respawn.baseReviveCostDiamonds` | `5` | Price of the first buy-back; each later one doubles |
-| `respawn.generateVillageShrines` | `true` | Build shrines in newly generated villages |
+| `forceHardcore` | `true` | Force hardcore (hearts, locked Hard difficulty) |
+| `disableNaturalRegen` | `true` | Force `natural_health_regeneration` off |
+| `foodHealPerHungerPoint` | `1.0` | Half-hearts healed per hunger point eaten (`0` disables) |
+| `baseReviveCostDiamonds` | `5` | Price of the first buy-back; each later one doubles |
+| `generateVillageShrines` | `true` | Build shrines in newly generated villages |
 
 ## Install
-1. Install the NeoForge **26.3.x** server for Minecraft 26.3 (Java 25).
-2. Put `hardcoreserver-<version>.jar` (from the [Releases](../../releases) page) into the server's `mods/` folder.
+1. Run a **Fabric** server for Minecraft 26.3 (Fabric Loader 0.19+, Java 25) with **Fabric API** installed.
+2. Put `hardcoreserver-fabric-<version>.jar` (from the [Releases](../../releases) page) into the server's `mods/` folder.
 3. Start the server. Shrines only appear in villages generated **after** installing — use
    `/hardcore shrine create` for existing villages.
 
 ## Building
-Requires Java 25 (Gradle downloads it automatically if missing).
+Requires Java 25 (Gradle itself must run on Java 25 for Fabric Loom).
 ```
 ./gradlew build
 ```

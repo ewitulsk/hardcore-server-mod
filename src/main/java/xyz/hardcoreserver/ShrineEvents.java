@@ -11,21 +11,21 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.StructureTags;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
-import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
 import net.minecraft.server.permissions.Permissions;
-import net.neoforged.neoforge.event.level.ChunkEvent;
-import net.neoforged.neoforge.event.level.ExplosionEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -39,10 +39,9 @@ public final class ShrineEvents {
 
     // ---------------------------------------------------------------- generation
 
-    @SubscribeEvent
-    public static void onChunkLoad(ChunkEvent.Load event) {
-        if (!event.isNewChunk() || !(event.getLevel() instanceof ServerLevel level)) return;
-        Map<Structure, StructureStart> starts = event.getChunk().getAllStarts();
+    public static void onChunkLoad(ServerLevel level, LevelChunk chunk, boolean newChunk) {
+        if (!newChunk) return;
+        Map<Structure, StructureStart> starts = chunk.getAllStarts();
         if (starts.isEmpty()) return;
         Registry<Structure> registry = level.registryAccess().lookupOrThrow(Registries.STRUCTURE);
         for (Map.Entry<Structure, StructureStart> e : starts.entrySet()) {
@@ -54,9 +53,7 @@ public final class ShrineEvents {
         }
     }
 
-    @SubscribeEvent
-    public static void onServerTick(ServerTickEvent.Post event) {
-        MinecraftServer server = event.getServer();
+    public static void onServerTick(MinecraftServer server) {
         HardcoreData data = HardcoreData.get(server);
         GlobalPos found;
         while ((found = newVillages.poll()) != null) {
@@ -88,50 +85,48 @@ public final class ShrineEvents {
 
     // ---------------------------------------------------------------- interaction
 
-    @SubscribeEvent
-    public static void onRightClick(PlayerInteractEvent.RightClickBlock event) {
-        if (!(event.getLevel() instanceof ServerLevel level) || !(event.getEntity() instanceof ServerPlayer player)) return;
-        GlobalPos pos = GlobalPos.of(level.dimension(), event.getPos());
+    public static InteractionResult onUseBlock(Player p, net.minecraft.world.level.Level lvl, InteractionHand hand, BlockHitResult hit) {
+        if (!(lvl instanceof ServerLevel level) || !(p instanceof ServerPlayer player)) return InteractionResult.PASS;
+        GlobalPos pos = GlobalPos.of(level.dimension(), hit.getBlockPos());
         HardcoreData data = HardcoreData.get(level.getServer());
-        if (!data.shrines().contains(pos)) return;
-        if (!level.getBlockState(event.getPos()).is(Blocks.RESPAWN_ANCHOR)) {
+        if (!data.shrines().contains(pos)) return InteractionResult.PASS;
+        if (!level.getBlockState(hit.getBlockPos()).is(Blocks.RESPAWN_ANCHOR)) {
             data.removeShrine(pos); // shrine was replaced somehow
-            return;
+            return InteractionResult.PASS;
         }
-
         // Never let the anchor behave like a vanilla anchor (charging, exploding, setting spawn).
-        event.setCanceled(true);
-        event.setCancellationResult(InteractionResult.SUCCESS);
-        if (event.getHand() != InteractionHand.MAIN_HAND || player.gameMode.getGameModeForPlayer() == GameType.SPECTATOR) return;
-        ReviveMenu.open(player, level, event.getPos());
+        if (hand == InteractionHand.MAIN_HAND && player.gameMode.getGameModeForPlayer() != GameType.SPECTATOR) {
+            ReviveMenu.open(player, level, hit.getBlockPos());
+        }
+        return InteractionResult.SUCCESS;
     }
 
     // ---------------------------------------------------------------- protection
 
-    @SubscribeEvent
-    public static void onBreak(BreakBlockEvent event) {
-        if (!(event.getLevel() instanceof ServerLevel level)) return;
+    /** Returns false to cancel the break. */
+    public static boolean onBreak(net.minecraft.world.level.Level lvl, Player player, BlockPos bpos, BlockState state, BlockEntity be) {
+        if (!(lvl instanceof ServerLevel level)) return true;
         HardcoreData data = HardcoreData.get(level.getServer());
-        GlobalPos anchor = protectingShrine(data, level.dimension(), event.getPos());
-        if (anchor == null) return;
-        if (event.getPlayer().isCreative() && event.getPlayer().permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)) {
-            if (anchor.pos().equals(event.getPos())) {
+        GlobalPos anchor = protectingShrine(data, level.dimension(), bpos);
+        if (anchor == null) return true;
+        if (player.isCreative() && player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)) {
+            if (anchor.pos().equals(bpos)) {
                 data.removeShrine(anchor);
                 ShrineBuilder.removeLabel(level, anchor.pos());
-                event.getPlayer().sendSystemMessage(Component.literal("Respawn Shrine removed.").withStyle(ChatFormatting.YELLOW));
+                player.sendSystemMessage(Component.literal("Respawn Shrine removed.").withStyle(ChatFormatting.YELLOW));
             }
-            return;
+            return true;
         }
-        event.setCanceled(true);
-        event.getPlayer().sendSystemMessage(Component.literal("The Respawn Shrine is protected.").withStyle(ChatFormatting.RED));
+        player.sendSystemMessage(Component.literal("The Respawn Shrine is protected.").withStyle(ChatFormatting.RED));
+        return false;
     }
 
-    @SubscribeEvent
-    public static void onExplode(ExplosionEvent.Detonate event) {
-        if (!(event.getLevel() instanceof ServerLevel level)) return;
+    /** Called from the explosion mixin: drops shrine blocks from an explosion's block list. */
+    public static List<BlockPos> filterExplosion(ServerLevel level, List<BlockPos> blocks) {
         HardcoreData data = HardcoreData.get(level.getServer());
-        if (data.shrines().isEmpty()) return;
-        event.getAffectedBlocks().removeIf(p -> protectingShrine(data, level.dimension(), p) != null);
+        if (data.shrines().isEmpty()) return blocks;
+        blocks.removeIf(p -> protectingShrine(data, level.dimension(), p) != null);
+        return blocks;
     }
 
     /** The shrine whose 3x3x3 footprint contains {@code pos}, or null. */

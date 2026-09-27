@@ -4,7 +4,10 @@
   "package": "xyz.hardcoreserver.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "PrimaryLevelDataMixin"
+    "PrimaryLevelDataMixin",
+    "FoodPropertiesMixin",
+    "CakeBlockMixin",
+    "ServerExplosionMixin"
   ],
   "injectors": {
     "defaultRequire": 1
