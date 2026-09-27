@@ -58,4 +58,4 @@ Creative-mode operators can also break a shrine's anchor to remove it.
 ```
 ./gradlew build
 ```
-The jar is written to `build/libs/`. Pushing a `v*` tag builds the jar in GitHub Actions and publishes a release.
+The jar is written to `build/libs/`. Pushing code (or a `v*` tag) builds the jar in GitHub Actions and publishes it as release `v<mod_version>` (from `gradle.properties`); bump `mod_version` for a new release.

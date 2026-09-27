@@ -2,7 +2,13 @@ name: Build & Release
 
 on:
   push:
+    branches: ['**']
     tags: ['v*']
+    paths:
+      - 'src/**'
+      - 'gradle.properties'
+      - 'build.gradle'
+      - '.github/workflows/release.yml'
   workflow_dispatch:
     inputs:
       tag:
@@ -24,10 +30,16 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Build
         run: ./gradlew build --no-daemon
+      - name: Determine tag
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else echo "tag=v$(grep '^mod_version=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"; fi
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
-          name: Hardcore Server ${{ github.event.inputs.tag || github.ref_name }}
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: Hardcore Server ${{ steps.tag.outputs.tag }}
           target_commitish: ${{ github.sha }}
           files: build/libs/*.jar
           generate_release_notes: true
