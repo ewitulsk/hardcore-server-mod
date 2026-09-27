@@ -11,7 +11,9 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
@@ -83,6 +85,29 @@ public final class HardcoreCommands {
         self.teleportTo(target.level(), target.getX(), target.getY(), target.getZ(), Set.of(), target.getYRot(), target.getXRot(), true);
         src.sendSuccess(() -> Component.literal("Teleported to " + target.getGameProfile().name() + ".").withStyle(ChatFormatting.GRAY), false);
         return 1;
+    }
+
+    /** Chat line explaining /visit, with a clickable command that pre-fills "/visit " in the chat box. */
+    public static Component visitHint(String prefix) {
+        return visitHint(prefix, "/visit ");
+    }
+
+    public static Component visitHint(String prefix, String suggestion) {
+        return Component.literal(prefix).withStyle(ChatFormatting.YELLOW)
+                .append(Component.literal("/visit <player>").withStyle(st -> st.withColor(ChatFormatting.AQUA).withUnderlined(true)
+                        .withClickEvent(new ClickEvent.SuggestCommand(suggestion))
+                        .withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to type /visit")))))
+                .append(Component.literal(" to teleport to any online player (e.g. /visit Steve).").withStyle(ChatFormatting.YELLOW));
+    }
+
+    /** True if this dead spectator typed /tp or /teleport but isn't allowed to use it. */
+    public static boolean shouldRedirectTp(ServerPlayer p, CommandSourceStack src, String command) {
+        String cmd = command.startsWith("/") ? command.substring(1) : command;
+        String first = cmd.split(" ", 2)[0].toLowerCase(java.util.Locale.ROOT);
+        if (!first.equals("tp") && !first.equals("teleport")) return false;
+        if (!isDeadSpectator(p)) return false;
+        var node = p.level().getServer().getCommands().getDispatcher().getRoot().getChild(first);
+        return node == null || !node.canUse(src);
     }
 
     /** Re-sends the command list so /visit appears or disappears for this player right away. */

@@ -44,7 +44,8 @@ public final class HardcoreEvents {
         HardcoreCommands.refresh(player);
         player.sendSystemMessage(Component.literal("You died! You are now a spectator until another player buys you back with diamonds at a village Respawn Shrine.")
                 .withStyle(ChatFormatting.RED));
-        player.sendSystemMessage(Component.literal("Use /visit <player> to teleport to someone, and /hardcore shrines to find the shrines.")
+        player.sendSystemMessage(HardcoreCommands.visitHint("While you're dead, use "));
+        player.sendSystemMessage(Component.literal("Use /hardcore shrines to see where the Respawn Shrines are.")
                 .withStyle(ChatFormatting.GRAY));
     }
 

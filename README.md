@@ -11,6 +11,8 @@ plain **vanilla** client (no mods, no Fabric needed). Everything is built from v
 - When a player dies they respawn in **spectator mode** and stay there until someone buys them back.
 - Dead spectators can teleport to any online player with **`/visit <player>`** (works across dimensions).
   The command only exists while you are dead and spectating; as soon as you are bought back it disappears.
+  Dead players are told about `/visit` in chat when they die, and if they try `/tp` or `/teleport`
+  they get a clickable hint pointing to `/visit` instead of "Unknown command".
   (Vanilla's spectator menu — press `1` or middle-click in spectator — can also teleport to players.)
 
 ### 2. No natural regeneration
