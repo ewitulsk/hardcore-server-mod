@@ -27,6 +27,10 @@ public class HardcoreServer implements ModInitializer {
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> HardcoreEvents.onLogin(handler.player));
         ServerTickEvents.END_SERVER_TICK.register(HardcoreEvents::onServerTick);
         ServerTickEvents.END_SERVER_TICK.register(ShrineEvents::onServerTick);
+        ServerTickEvents.END_SERVER_TICK.register(FortressCompass::tick);
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            if (server.getTickCount() % 60 == 0) Config.reloadIfChanged();
+        });
 
         ServerChunkEvents.CHUNK_LOAD.register(ShrineEvents::onChunkLoad);
         UseBlockCallback.EVENT.register(ShrineEvents::onUseBlock);

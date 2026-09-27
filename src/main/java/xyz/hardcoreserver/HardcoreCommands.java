@@ -16,6 +16,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
@@ -34,6 +35,9 @@ import java.util.UUID;
  * /hardcore revive &lt;player&gt;      - (op) revive a dead player for free
  * /hardcore shrine create        - (op) build a shrine where you stand
  * /hardcore shrine remove        - (op) unregister the nearest shrine within 8 blocks
+ * /hardcore fortresscompass     - show whether the Fortress Compass is enabled
+ * /hardcore fortresscompass enable|disable - (op) toggle it and save to the config
+ * /hardcore fortresscompass give - (op) give yourself one
  * /visit &lt;player&gt;                - dead spectators only: teleport to a player
  */
 public final class HardcoreCommands {
@@ -57,6 +61,13 @@ public final class HardcoreCommands {
                                 .suggests((ctx, b) -> SharedSuggestionProvider.suggest(
                                         HardcoreData.get(ctx.getSource().getServer()).dead().values(), b))
                                 .executes(HardcoreCommands::revive)))
+                .then(Commands.literal("fortresscompass").executes(HardcoreCommands::compassStatus)
+                        .then(Commands.literal("enable").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                                .executes(ctx -> setCompass(ctx, true)))
+                        .then(Commands.literal("disable").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                                .executes(ctx -> setCompass(ctx, false)))
+                        .then(Commands.literal("give").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                                .executes(HardcoreCommands::giveCompass)))
                 .then(Commands.literal("shrine").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .then(Commands.literal("create").executes(HardcoreCommands::createShrine))
                         .then(Commands.literal("remove").executes(HardcoreCommands::removeShrine))));
@@ -113,6 +124,29 @@ public final class HardcoreCommands {
     /** Re-sends the command list so /visit appears or disappears for this player right away. */
     public static void refresh(ServerPlayer p) {
         p.level().getServer().getCommands().sendCommands(p);
+    }
+
+    private static int compassStatus(CommandContext<CommandSourceStack> ctx) {
+        boolean on = Config.FORTRESS_COMPASS_ENABLED.get();
+        ctx.getSource().sendSuccess(() -> Component.literal("The Fortress Compass is " + (on ? "ENABLED" : "DISABLED") + ".")
+                .withStyle(on ? ChatFormatting.GREEN : ChatFormatting.RED), false);
+        return on ? 1 : 0;
+    }
+
+    private static int setCompass(CommandContext<CommandSourceStack> ctx, boolean on) {
+        Config.FORTRESS_COMPASS_ENABLED.set(on); // also writes config/hardcoreserver.properties
+        ctx.getSource().sendSuccess(() -> Component.literal("Fortress Compass " + (on ? "enabled" : "disabled")
+                + " (saved to config). " + (on ? "It can be crafted and existing compasses work again."
+                : "It can't be crafted and existing compasses stop pointing.")).withStyle(on ? ChatFormatting.GREEN : ChatFormatting.YELLOW), true);
+        return 1;
+    }
+
+    private static int giveCompass(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer p = ctx.getSource().getPlayerOrException();
+        ItemStack stack = FortressCompass.create();
+        if (!p.getInventory().add(stack)) p.spawnAtLocation(p.level(), stack);
+        ctx.getSource().sendSuccess(() -> Component.literal("Gave a Fortress Compass to " + p.getGameProfile().name() + "."), true);
+        return 1;
     }
 
     private static int listDead(CommandContext<CommandSourceStack> ctx) {

@@ -1,0 +1,31 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "NGN",
+    "BCB",
+    "NDN"
+  ],
+  "key": {
+    "N": "minecraft:nether_bricks",
+    "G": "minecraft:gold_block",
+    "B": "minecraft:blaze_rod",
+    "C": "minecraft:compass",
+    "D": "minecraft:diamond_block"
+  },
+  "result": {
+    "id": "minecraft:compass",
+    "count": 1,
+    "components": {
+      "minecraft:custom_data": { "hardcoreserver": "fortress_compass" },
+      "minecraft:custom_name": { "text": "Fortress Compass", "italic": false, "color": "gold" },
+      "minecraft:enchantment_glint_override": true,
+      "minecraft:lodestone_tracker": { "tracked": false },
+      "minecraft:lore": [
+        { "text": "Points toward a Nether fortress...", "italic": false, "color": "gray" },
+        { "text": "...but never the closest one.", "italic": false, "color": "gray" },
+        { "text": "Only works in the Nether.", "italic": false, "color": "dark_red" }
+      ]
+    }
+  }
+}

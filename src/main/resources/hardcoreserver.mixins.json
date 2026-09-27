@@ -6,7 +6,8 @@
   "mixins": [
     "PrimaryLevelDataMixin",
     "ServerExplosionMixin",
-    "CommandsMixin"
+    "CommandsMixin",
+    "CraftingMenuMixin"
   ],
   "injectors": {
     "defaultRequire": 1

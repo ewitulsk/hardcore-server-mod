@@ -31,6 +31,24 @@ plain **vanilla** client (no mods, no Fabric needed). Everything is built from v
 - If the dead player is offline, they are revived at the shrine the next time they join.
 - Shrines are protected from players (survival) and explosions, and the anchor never explodes or sets spawn.
 
+### 4. Fortress Compass
+A craftable compass that points toward a Nether fortress — but **never the closest one** (it always picks the
+second-closest). It only works in the Nether; anywhere else the needle spins.
+
+Recipe (crafting table):
+
+```
+[Nether Bricks] [Gold Block]    [Nether Bricks]
+[Blaze Rod]     [Compass]       [Blaze Rod]
+[Nether Bricks] [Diamond Block] [Nether Bricks]
+```
+
+It's a vanilla compass with custom data, driven by the vanilla lodestone-compass mechanic, so unmodded clients
+see and use it normally. It can be switched off at any time (`/hardcore fortresscompass disable`, or
+`fortressCompassEnabled=false` in the config — edits are picked up within a few seconds). While disabled it can't
+be crafted, and compasses that already exist stop pointing (their tooltip says "DISABLED by the server");
+re-enabling brings them back to life.
+
 ## Commands
 
 | Command | Who | Description |
@@ -41,6 +59,9 @@ plain **vanilla** client (no mods, no Fabric needed). Everything is built from v
 | `/hardcore price` | everyone | Show the current buy-back price |
 | `/hardcore price reset` | op | Reset the doubling price back to 5 |
 | `/hardcore revive <player>` | op | Revive a dead player for free (at your position; doesn't raise the price) |
+| `/hardcore fortresscompass` | everyone | Show whether the Fortress Compass is enabled |
+| `/hardcore fortresscompass enable\|disable` | op | Turn the Fortress Compass on/off (saved to the config) |
+| `/hardcore fortresscompass give` | op | Give yourself a Fortress Compass |
 | `/hardcore shrine create` | op | Build a shrine where you are standing (e.g. for villages generated before the mod was installed, or at spawn) |
 | `/hardcore shrine remove` | op | Unregister the nearest shrine within 8 blocks |
 
@@ -48,7 +69,7 @@ Creative-mode operators can also break a shrine's anchor to remove it.
 
 ## Configuration
 
-`config/hardcoreserver.properties` (created on first launch; restart after editing):
+`config/hardcoreserver.properties` (created on first launch; changes are picked up within a few seconds, except `forceHardcore` which needs a restart):
 
 | Key | Default | Description |
 |---|---|---|
@@ -56,6 +77,7 @@ Creative-mode operators can also break a shrine's anchor to remove it.
 | `disableNaturalRegen` | `true` | Force `natural_health_regeneration` off |
 | `baseReviveCostDiamonds` | `5` | Price of the first buy-back; each later one doubles |
 | `generateVillageShrines` | `true` | Build shrines in newly generated villages |
+| `fortressCompassEnabled` | `true` | Fortress Compass craftable and working |
 
 ## Install
 1. Run a **Fabric** server for Minecraft 26.3 (Fabric Loader 0.19+, Java 25) with **Fabric API** installed.
