@@ -5,8 +5,6 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "PrimaryLevelDataMixin",
-    "FoodPropertiesMixin",
-    "CakeBlockMixin",
     "ServerExplosionMixin"
   ],
   "injectors": {

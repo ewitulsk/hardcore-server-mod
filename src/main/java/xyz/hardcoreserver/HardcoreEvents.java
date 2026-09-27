@@ -6,7 +6,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.gamerules.GameRules;
 
@@ -14,7 +13,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
-/** Hardcore death handling and the "no natural regen, food heals" health rules. */
+/** Hardcore death handling and the "no natural regen" health rule. */
 public final class HardcoreEvents {
 
     public static void onServerStarted(MinecraftServer server) {
@@ -80,15 +79,6 @@ public final class HardcoreEvents {
         }
     }
 
-    // ---------------------------------------------------------------- food heals (called from mixins)
-
-    public static void healFromFood(Player player, int nutrition) {
-        if (!(player instanceof ServerPlayer)) return;
-        float amount = (float) (nutrition * Config.FOOD_HEAL_PER_HUNGER_POINT.get());
-        if (amount > 0 && player.isAlive() && player.getHealth() < player.getMaxHealth()) {
-            player.heal(amount);
-        }
-    }
 
     private HardcoreEvents() {}
 }

@@ -10,10 +10,10 @@ plain **vanilla** client (no mods, no Fabric needed). Everything is built from v
   and difficulty is locked to **Hard**.
 - When a player dies they respawn in **spectator mode** and stay there until someone buys them back.
 
-### 2. No natural regeneration — food heals
-- The `natural_health_regeneration` gamerule is forced off (saturation no longer heals you).
-- Instead, **eating heals you directly**: 1 half-heart per hunger point of the food (steak = 8 hunger = 4 hearts).
-  Cake slices heal too. Golden apples / regeneration potions still work as normal.
+### 2. No natural regeneration
+- The `natural_health_regeneration` gamerule is forced off, so a full food bar no longer heals you.
+- Food only fills your hunger bar; it never heals. Health only comes back from things like golden apples,
+  Regeneration potions/beacons, or being bought back at a Respawn Shrine.
 
 ### 3. Respawn Shrines — buy back players with diamonds
 - Every newly generated **village** gets a **Respawn Shrine** near its center: a charged Respawn Anchor on a
@@ -48,7 +48,6 @@ Creative-mode operators can also break a shrine's anchor to remove it.
 |---|---|---|
 | `forceHardcore` | `true` | Force hardcore (hearts, locked Hard difficulty) |
 | `disableNaturalRegen` | `true` | Force `natural_health_regeneration` off |
-| `foodHealPerHungerPoint` | `1.0` | Half-hearts healed per hunger point eaten (`0` disables) |
 | `baseReviveCostDiamonds` | `5` | Price of the first buy-back; each later one doubles |
 | `generateVillageShrines` | `true` | Build shrines in newly generated villages |
 

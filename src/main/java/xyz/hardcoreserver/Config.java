@@ -40,8 +40,6 @@ public final class Config {
             "Force the world into hardcore mode (hardcore hearts, difficulty locked to Hard). Dead players become spectators.");
     public static final Value<Boolean> DISABLE_NATURAL_REGEN = bool("disableNaturalRegen", true,
             "Disable natural (saturation-based) health regeneration via the natural_health_regeneration gamerule.");
-    public static final Value<Double> FOOD_HEAL_PER_HUNGER_POINT = dbl("foodHealPerHungerPoint", 1.0,
-            "Health restored (in half-hearts) per hunger point of food eaten. Steak = 8 hunger points. 0 disables.");
     public static final Value<Integer> BASE_REVIVE_COST = integer("baseReviveCostDiamonds", 5,
             "Diamonds for the FIRST buy-back on the server. Each later buy-back costs double: 5, 10, 20, 40, 80, ...");
     public static final Value<Boolean> GENERATE_VILLAGE_SHRINES = bool("generateVillageShrines", true,
@@ -53,10 +51,6 @@ public final class Config {
 
     private static Value<Integer> integer(String k, int d, String c) {
         return add(new Value<>(k, d, s -> Math.max(1, Integer.parseInt(s)), c));
-    }
-
-    private static Value<Double> dbl(String k, double d, String c) {
-        return add(new Value<>(k, d, s -> Math.max(0.0, Double.parseDouble(s)), c));
     }
 
     private static <T> Value<T> add(Value<T> v) {
