@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
@@ -28,6 +29,9 @@ public class HardcoreServer implements ModInitializer {
         ServerTickEvents.END_SERVER_TICK.register(HardcoreEvents::onServerTick);
         ServerTickEvents.END_SERVER_TICK.register(ShrineEvents::onServerTick);
         ServerTickEvents.END_SERVER_TICK.register(FortressCompass::tick);
+        ServerTickEvents.END_SERVER_TICK.register(FollowCam::tick);
+        ServerLifecycleEvents.SERVER_STOPPING.register(FollowCam::stopAll);
+        ServerEntityEvents.ENTITY_LOAD.register(FollowCam::onEntityLoad);
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             if (server.getTickCount() % 60 == 0) Config.reloadIfChanged();
         });

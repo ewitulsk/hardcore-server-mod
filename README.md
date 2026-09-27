@@ -14,6 +14,11 @@ plain **vanilla** client (no mods, no Fabric needed). Everything is built from v
   Dead players are told about `/visit` in chat when they die, and if they try `/tp` or `/teleport`
   they get a clickable hint pointing to `/visit` instead of "Unknown command".
   (Vanilla's spectator menu — press `1` or middle-click in spectator — can also teleport to players.)
+- **Follow camera:** fly to where you want the camera (within 64 blocks), look at the player, and run
+  **`/follow <player>`**. The camera locks at that offset and angle and moves with them, so you always see them from
+  the same direction. **`/follow <player> rotate`** also turns with their body, so you always see the same *side of
+  them* (e.g. their left). Sneak or `/unfollow` to stop. Uses the vanilla camera (like `/spectate`), so no client
+  mod is needed. Only available while dead.
 
 ### 2. No natural regeneration
 - The `natural_health_regeneration` gamerule is forced off, so a full food bar no longer heals you.
@@ -54,6 +59,8 @@ re-enabling brings them back to life.
 | Command | Who | Description |
 |---|---|---|
 | `/visit <player>` | dead spectators only | Teleport to a player (gone once you're revived) |
+| `/follow <player> [rotate]` | dead spectators only | Lock a follow camera at your current offset and angle |
+| `/unfollow` | dead spectators only | Stop the follow camera (sneaking also works) |
 | `/hardcore dead` | everyone | List dead players |
 | `/hardcore shrines` | everyone | Show the nearest Respawn Shrines and their distance |
 | `/hardcore price` | everyone | Show the current buy-back price |

@@ -38,6 +38,8 @@ import java.util.UUID;
  * /hardcore fortresscompass     - show whether the Fortress Compass is enabled
  * /hardcore fortresscompass enable|disable - (op) toggle it and save to the config
  * /hardcore fortresscompass give - (op) give yourself one
+ * /follow &lt;player&gt; [rotate]     - dead spectators only: lock a follow camera at your current offset/angle
+ * /unfollow                      - stop following (sneaking also works)
  * /visit &lt;player&gt;                - dead spectators only: teleport to a player
  */
 public final class HardcoreCommands {
@@ -45,6 +47,22 @@ public final class HardcoreCommands {
     public static void register(CommandDispatcher<CommandSourceStack> d) {
         // Only usable while dead and spectating. The check runs every time, so being bought back
         // (or an op taking you out of spectator) removes access immediately - nothing to revoke.
+        d.register(Commands.literal("follow")
+                .requires(HardcoreCommands::isDeadSpectator)
+                .then(Commands.argument("player", EntityArgument.player())
+                        .executes(ctx -> follow(ctx, false))
+                        .then(Commands.literal("rotate").executes(ctx -> follow(ctx, true)))));
+        d.register(Commands.literal("unfollow")
+                .requires(HardcoreCommands::isDeadSpectator)
+                .executes(ctx -> {
+                    ServerPlayer self = ctx.getSource().getPlayerOrException();
+                    if (!FollowCam.isFollowing(self)) {
+                        ctx.getSource().sendFailure(Component.literal("You aren't following anyone."));
+                        return 0;
+                    }
+                    FollowCam.stop(self, Component.literal("Stopped following.").withStyle(ChatFormatting.GRAY));
+                    return 1;
+                }));
         d.register(Commands.literal("visit")
                 .requires(HardcoreCommands::isDeadSpectator)
                 .then(Commands.argument("player", EntityArgument.player())
@@ -95,6 +113,30 @@ public final class HardcoreCommands {
         }
         self.teleportTo(target.level(), target.getX(), target.getY(), target.getZ(), Set.of(), target.getYRot(), target.getXRot(), true);
         src.sendSuccess(() -> Component.literal("Teleported to " + target.getGameProfile().name() + ".").withStyle(ChatFormatting.GRAY), false);
+        return 1;
+    }
+
+    private static int follow(CommandContext<CommandSourceStack> ctx, boolean rotate) throws CommandSyntaxException {
+        CommandSourceStack src = ctx.getSource();
+        ServerPlayer self = src.getPlayerOrException();
+        if (!isDeadSpectator(self)) {
+            src.sendFailure(Component.literal("Only dead players in spectator mode can use /follow."));
+            return 0;
+        }
+        ServerPlayer target = EntityArgument.getPlayer(ctx, "player");
+        if (target == self) {
+            src.sendFailure(Component.literal("You can't follow yourself."));
+            return 0;
+        }
+        if (target.level() != self.level() || self.distanceTo(target) > 64) {
+            src.sendFailure(Component.literal("Get within 64 blocks of " + target.getGameProfile().name()
+                    + " first (try /visit " + target.getGameProfile().name() + "), then fly to the spot you want the camera and run /follow again."));
+            return 0;
+        }
+        FollowCam.start(self, target, rotate);
+        String name = target.getGameProfile().name();
+        src.sendSuccess(() -> Component.literal("Following " + name + (rotate ? " (camera turns with them)" : " (fixed angle)")
+                + ". Sneak or use /unfollow to stop.").withStyle(ChatFormatting.GRAY), false);
         return 1;
     }
 

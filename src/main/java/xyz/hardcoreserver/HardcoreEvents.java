@@ -45,6 +45,11 @@ public final class HardcoreEvents {
         player.sendSystemMessage(Component.literal("You died! You are now a spectator until another player buys you back with diamonds at a village Respawn Shrine.")
                 .withStyle(ChatFormatting.RED));
         player.sendSystemMessage(HardcoreCommands.visitHint("While you're dead, use "));
+        player.sendSystemMessage(Component.literal("To film someone from a fixed angle: fly to where you want the camera, look at them, and run ")
+                .withStyle(ChatFormatting.YELLOW)
+                .append(Component.literal("/follow <player>").withStyle(st -> st.withColor(ChatFormatting.AQUA).withUnderlined(true)
+                        .withClickEvent(new net.minecraft.network.chat.ClickEvent.SuggestCommand("/follow "))))
+                .append(Component.literal(" (add \"rotate\" to keep the same side of their body). Sneak to stop.").withStyle(ChatFormatting.YELLOW)));
         player.sendSystemMessage(Component.literal("Use /hardcore shrines to see where the Respawn Shrines are.")
                 .withStyle(ChatFormatting.GRAY));
     }
