@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "xyz.hardcoreserver.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "PrimaryLevelDataMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

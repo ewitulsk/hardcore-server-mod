@@ -1,0 +1,61 @@
+# Hardcore Server (NeoForge 1.21.1)
+
+A **server-side only** NeoForge mod for Minecraft **1.21.1**. Install it on the server; players join with a
+plain **vanilla** client (no mods, no NeoForge needed). Everything is built from vanilla blocks, entities and GUIs.
+
+## Features
+
+### 1. Forced hardcore
+- The world always reports itself as hardcore: players see hardcore hearts and the hardcore death screen,
+  and difficulty is locked to **Hard**.
+- When a player dies they respawn in **spectator mode** and stay there until someone buys them back.
+
+### 2. No natural regeneration — food heals
+- The `naturalRegeneration` gamerule is forced off (saturation no longer heals you).
+- Instead, **eating heals you directly**: 1 half-heart per hunger point of the food (steak = 8 hunger = 4 hearts).
+  Cake slices heal too. Golden apples / regeneration potions still work as normal.
+
+### 3. Respawn Shrines — buy back players with diamonds
+- Every newly generated **village** gets a **Respawn Shrine** near its center: a charged Respawn Anchor on a
+  polished blackstone platform with soul lanterns and a floating "Respawn Shrine" label.
+- **Right-click the anchor** to open a chest-style menu showing the heads of all dead players.
+  Click a head to spend **10 diamonds** (configurable) from your inventory — the dead player is brought back
+  to life at the shrine in survival with full health and food.
+- If the dead player is offline, they are revived at the shrine the next time they join.
+- Shrines are protected from players (survival) and explosions, and the anchor never explodes or sets spawn.
+
+## Commands
+
+| Command | Who | Description |
+|---|---|---|
+| `/hardcore dead` | everyone | List dead players |
+| `/hardcore shrines` | everyone | Show the nearest Respawn Shrines and their distance |
+| `/hardcore revive <player>` | op | Revive a dead player for free (at your position) |
+| `/hardcore shrine create` | op | Build a shrine where you are standing (e.g. for villages generated before the mod was installed, or at spawn) |
+| `/hardcore shrine remove` | op | Unregister the nearest shrine within 8 blocks |
+
+Creative-mode operators can also break a shrine's anchor to remove it.
+
+## Configuration
+
+`config/hardcoreserver-common.toml` (created on first launch):
+
+| Key | Default | Description |
+|---|---|---|
+| `hardcore.forceHardcore` | `true` | Force hardcore (hearts, locked Hard difficulty) |
+| `health.disableNaturalRegen` | `true` | Force `naturalRegeneration` off |
+| `health.foodHealPerHungerPoint` | `1.0` | Half-hearts healed per hunger point eaten (`0` disables) |
+| `respawn.reviveCostDiamonds` | `10` | Diamonds required to buy back a player |
+| `respawn.generateVillageShrines` | `true` | Build shrines in newly generated villages |
+
+## Install
+1. Install the NeoForge **21.1.x** server for Minecraft 1.21.1.
+2. Put `hardcoreserver-<version>.jar` (from the [Releases](../../releases) page) into the server's `mods/` folder.
+3. Start the server. Shrines only appear in villages generated **after** installing — use
+   `/hardcore shrine create` for existing villages.
+
+## Building
+```
+./gradlew build
+```
+The jar is written to `build/libs/`. Pushing a `v*` tag builds the jar in GitHub Actions and publishes a release.
