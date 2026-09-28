@@ -48,7 +48,9 @@ public final class Config {
     public static final Value<Boolean> DISABLE_NATURAL_REGEN = bool("disableNaturalRegen", true,
             "Disable natural (saturation-based) health regeneration via the natural_health_regeneration gamerule.");
     public static final Value<Integer> BASE_REVIVE_COST = integer("baseReviveCostDiamonds", 5,
-            "Diamonds for the FIRST buy-back on the server. Each later buy-back costs double: 5, 10, 20, 40, 80, ...");
+            "Diamonds for the FIRST buy-back on the server. Each later buy-back costs double: 5, 10, 20, 40, 80, ... (up to maxReviveCostDiamonds, if set).");
+    public static final Value<Integer> MAX_REVIVE_COST = nonNegative("maxReviveCostDiamonds", 0,
+            "Cap on the buy-back price: it keeps doubling but never goes above this many diamonds. 0 = no cap. Set in-game with /hardcore price cap <n|off>.");
     public static final Value<Boolean> FORTRESS_COMPASS_ENABLED = bool("fortressCompassEnabled", true,
             "Fortress Compass: craftable and working. When false, it can't be crafted and existing ones stop pointing. Toggle in-game with /hardcore fortresscompass enable|disable.");
     public static final Value<Boolean> GENERATE_VILLAGE_SHRINES = bool("generateVillageShrines", true,
@@ -60,6 +62,10 @@ public final class Config {
 
     private static Value<Integer> integer(String k, int d, String c) {
         return add(new Value<>(k, d, s -> Math.max(1, Integer.parseInt(s)), c));
+    }
+
+    private static Value<Integer> nonNegative(String k, int d, String c) {
+        return add(new Value<>(k, d, s -> Math.max(0, Integer.parseInt(s)), c));
     }
 
     private static <T> Value<T> add(Value<T> v) {

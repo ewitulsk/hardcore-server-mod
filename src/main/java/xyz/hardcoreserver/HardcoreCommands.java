@@ -1,6 +1,7 @@
 package xyz.hardcoreserver;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -32,6 +33,7 @@ import java.util.UUID;
  * /hardcore shrines              - list the nearest Respawn Shrines
  * /hardcore price                - show the current buy-back price
  * /hardcore price reset          - (op) reset the doubling price back to the base cost
+ * /hardcore price cap &lt;n|off&gt;    - (op) cap the buy-back price (saved to the config)
  * /hardcore revive &lt;player&gt;      - (op) revive a dead player for free
  * /hardcore shrine create        - (op) build a shrine where you stand
  * /hardcore shrine remove        - (op) unregister the nearest shrine within 8 blocks
@@ -73,7 +75,11 @@ public final class HardcoreCommands {
                 .then(Commands.literal("shrines").executes(HardcoreCommands::listShrines))
                 .then(Commands.literal("price").executes(HardcoreCommands::showPrice)
                         .then(Commands.literal("reset").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
-                                .executes(HardcoreCommands::resetPrice)))
+                                .executes(HardcoreCommands::resetPrice))
+                        .then(Commands.literal("cap").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                                .then(Commands.literal("off").executes(ctx -> setCap(ctx, 0)))
+                                .then(Commands.argument("diamonds", IntegerArgumentType.integer(1))
+                                        .executes(ctx -> setCap(ctx, IntegerArgumentType.getInteger(ctx, "diamonds"))))))
                 .then(Commands.literal("revive").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .then(Commands.argument("player", StringArgumentType.word())
                                 .suggests((ctx, b) -> SharedSuggestionProvider.suggest(
@@ -207,10 +213,20 @@ public final class HardcoreCommands {
     private static int showPrice(CommandContext<CommandSourceStack> ctx) {
         HardcoreData data = HardcoreData.get(ctx.getSource().getServer());
         int n = data.revivesPurchased();
+        int cap = Config.MAX_REVIVE_COST.get();
         ctx.getSource().sendSuccess(() -> Component.literal("Next buy-back costs " + data.currentReviveCost() + " diamonds ("
                 + n + " bought back so far; the price doubles after each one, then "
-                + HardcoreData.costForPurchase(n + 1) + ").").withStyle(ChatFormatting.AQUA), false);
+                + HardcoreData.costForPurchase(n + 1) + ")" + (cap > 0 ? ". Capped at " + cap + " diamonds." : ".")).withStyle(ChatFormatting.AQUA), false);
         return data.currentReviveCost();
+    }
+
+    private static int setCap(CommandContext<CommandSourceStack> ctx, int cap) {
+        Config.MAX_REVIVE_COST.set(cap); // also writes config/hardcoreserver.properties
+        HardcoreData data = HardcoreData.get(ctx.getSource().getServer());
+        String msg = cap > 0 ? "Buy-back price capped at " + cap + " diamonds" : "Buy-back price cap removed";
+        ctx.getSource().sendSuccess(() -> Component.literal(msg + " (saved to config). Next buy-back costs "
+                + data.currentReviveCost() + " diamonds.").withStyle(ChatFormatting.GREEN), true);
+        return 1;
     }
 
     private static int resetPrice(CommandContext<CommandSourceStack> ctx) {

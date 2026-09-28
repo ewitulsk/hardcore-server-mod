@@ -112,12 +112,14 @@ public class HardcoreData extends SavedData {
         return costForPurchase(revivesPurchased);
     }
 
-    /** Cost of the purchase with the given zero-based index, capped so it never overflows. */
+    /** Cost of the purchase with the given zero-based index: doubling, limited by the configured cap (if any). */
     public static int costForPurchase(int index) {
         long cost = Config.BASE_REVIVE_COST.get();
         for (int i = 0; i < index && cost < Integer.MAX_VALUE; i++) {
             cost *= 2;
         }
+        int cap = Config.MAX_REVIVE_COST.get();
+        if (cap > 0) cost = Math.min(cost, cap);
         return (int) Math.min(cost, Integer.MAX_VALUE);
     }
 

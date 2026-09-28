@@ -33,6 +33,7 @@ plain **vanilla** client (no mods, no Fabric needed). Everything is built from v
   survival with full health and food.
 - **The price doubles with every buy-back** (server-wide): the 1st costs **5** diamonds, the 2nd **10**, then
   **20**, **40**, **80**, **160**, ... The current price is shown in the shrine menu and with `/hardcore price`.
+  An optional cap (`maxReviveCostDiamonds`, or `/hardcore price cap <n>`) stops it from growing past a set amount.
 - If the dead player is offline, they are revived at the shrine the next time they join.
 - Shrines are protected from players (survival) and explosions, and the anchor never explodes or sets spawn.
 
@@ -65,6 +66,7 @@ re-enabling brings them back to life.
 | `/hardcore shrines` | everyone | Show the nearest Respawn Shrines and their distance |
 | `/hardcore price` | everyone | Show the current buy-back price |
 | `/hardcore price reset` | op | Reset the doubling price back to 5 |
+| `/hardcore price cap <n\|off>` | op | Cap the buy-back price at `n` diamonds, or remove the cap (saved to the config) |
 | `/hardcore revive <player>` | op | Revive a dead player for free (at your position; doesn't raise the price) |
 | `/hardcore fortresscompass` | everyone | Show whether the Fortress Compass is enabled |
 | `/hardcore fortresscompass enable\|disable` | op | Turn the Fortress Compass on/off (saved to the config) |
@@ -83,6 +85,7 @@ Creative-mode operators can also break a shrine's anchor to remove it.
 | `forceHardcore` | `true` | Force hardcore (hearts, locked Hard difficulty) |
 | `disableNaturalRegen` | `true` | Force `natural_health_regeneration` off |
 | `baseReviveCostDiamonds` | `5` | Price of the first buy-back; each later one doubles |
+| `maxReviveCostDiamonds` | `0` | Cap on the buy-back price (`0` = no cap) |
 | `generateVillageShrines` | `true` | Build shrines in newly generated villages |
 | `fortressCompassEnabled` | `true` | Fortress Compass craftable and working |
 
@@ -91,6 +94,9 @@ Creative-mode operators can also break a shrine's anchor to remove it.
 2. Put `hardcoreserver-fabric-<version>.jar` (from the [Releases](../../releases) page) into the server's `mods/` folder.
 3. Start the server. Shrines only appear in villages generated **after** installing — use
    `/hardcore shrine create` for existing villages.
+
+## Ideas not built yet
+See [`docs/ideas/`](docs/ideas/) — e.g. [dead player bodies](docs/ideas/dead-player-bodies.md).
 
 ## Building
 Requires Java 25 (Gradle itself must run on Java 25 for Fabric Loom).

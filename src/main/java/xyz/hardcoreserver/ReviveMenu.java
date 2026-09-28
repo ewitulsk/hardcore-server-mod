@@ -84,7 +84,9 @@ public class ReviveMenu extends ChestMenu {
         head.set(DataComponents.LORE, new ItemLore(List.of(
                 Component.literal(online != null ? "Online (spectating)" : "Offline").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GRAY)),
                 Component.literal("Cost: " + cost + " diamonds").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.AQUA)),
-                Component.literal("(the price doubles after every buy-back)").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.DARK_GRAY)),
+                Component.literal(Config.MAX_REVIVE_COST.get() > 0
+                        ? "(the price doubles after every buy-back, up to " + Config.MAX_REVIVE_COST.get() + ")"
+                        : "(the price doubles after every buy-back)").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.DARK_GRAY)),
                 Component.literal("Click to buy back").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GREEN)))));
         return head;
     }
